@@ -1,9 +1,11 @@
-FROM public.ecr.aws/lambda/python:3.12
+FROM python:3.12-slim
 
-COPY ./api ./api
+WORKDIR /app
 
-COPY requirements.txt .
+COPY ./requirements.txt /app/requirements.txt
 
-RUN pip3 install -r requirements.txt -U --no-cache-dir
+RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
 
-CMD [ "api.app.handler" ]
+COPY ./api /app/api
+
+CMD ["uvicorn", "api.app:app", "--host", "0.0.0.0", "--port", "80"]

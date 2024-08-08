@@ -2,6 +2,7 @@ import time
 from typing import Literal, Iterable
 
 from pydantic import BaseModel, Field
+from api.setting import DEFAULT_MODEL
 
 
 class Model(BaseModel):
@@ -85,7 +86,7 @@ class StreamOptions(BaseModel):
 
 class ChatRequest(BaseModel):
     messages: list[SystemMessage | UserMessage | AssistantMessage | ToolMessage]
-    model: str
+    model: str | None = Field(default=DEFAULT_MODEL)
     frequency_penalty: float | None = Field(default=0.0, le=2.0, ge=-2.0)  # Not used
     presence_penalty: float | None = Field(default=0.0, le=2.0, ge=-2.0)  # Not used
     stream: bool | None = False

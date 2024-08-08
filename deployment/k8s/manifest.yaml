@@ -1,0 +1,57 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: bedrock-proxy-api
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: bedrock-proxy-api
+  namespace: bedrock-proxy-api
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bedrock-proxy-api
+  namespace: bedrock-proxy-api
+  labels:
+    app: bedrock-proxy-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: bedrock-proxy-api
+  template:
+    metadata:
+      labels:
+        app: bedrock-proxy-api
+    spec:
+      serviceAccountName: bedrock-proxy-api
+      containers:
+      - name: bedrock-proxy-api
+        image: public.ecr.aws/l4e4g2u7/bedrock-proxy-api:latest
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 80
+        resources:
+          limits:
+            cpu: "1"
+            memory: 2Gi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bedrock-proxy-api
+  namespace: bedrock-proxy-api
+spec:
+  type: ClusterIP
+  selector:
+    app: bedrock-proxy-api
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80

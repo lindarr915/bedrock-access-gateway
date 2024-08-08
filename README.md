@@ -1,15 +1,81 @@
 [中文](./README_CN.md)
 
-# Bedrock Access Gateway
+# Bedrock Proxy API
 
-OpenAI-compatible RESTful APIs for Amazon Bedrock
+AzureOpenAI-compatible RESTful APIs for Amazon Bedrock.
 
-## Breaking Changes
+This is a fork project from [Bedrock Access Gateway](https://github.com/aws-samples/bedrock-access-gateway), with the dedicated support for **AzureOpenAI** client instead of **OpenAI** client.
 
-The source code is refactored with the new [Converse API](https://docs.aws.amazon.com/bedrock/latest/userguide/conversation-inference.html) by bedrock which provides native support with tool calls.
+**Enhanced Features:**
+- [x] AzureOpenAI client
+- [x] Deployment on Amazon EKS
 
-If you are facing any problems, please raise an issue.
 
+## Setup
+### Happy path for testing
+First set up the permission for the Bedrock Proxy API. To simplify the process, we are leveraging the [EKS Pod Identity](https://docs.aws.amazon.com/eks/latest/userguide/pod-identities.html) feature, and using the EKS CLI tool - [eksctl](https://eksctl.io/).
+
+```bash
+kubectl create ns bedrock-proxy-api
+eksctl create addon --cluster <cluster-name> --name eks-pod-identity-agent
+eksctl create podidentityassociation \
+    --cluster <cluster-name> \
+    --namespace bedrock-proxy-api \
+    --service-account-name bedrock-proxy-api \
+    --permission-policy-arns="arn:aws:iam::aws:policy/AmazonBedrockFullAccess"
+```
+
+and then deploy the Bedrock Proxy API
+
+```bash
+make deploy
+```
+
+### Production
+
+We highly recommend you build image yourself and store the image in your ECR. Simply run below command will help you build the image and push the image to your ECR repo `bedrock-proxy-api` in `us-west-2` region by default. The ECR repo will be created if it doesn't exist.
+
+```bash
+make build
+```
+
+Make sure to update the image of the k8s deployment under `deployment/k8s/manifest.yaml`, and run `make deploy` to deploy again.
+
+> [!INFO]
+> Feel free to change the region within the `scripts/push-to-ecr.sh` if you want to change the target ECR repo name and region.
+
+### Verification
+
+Once you have the `bedrock-proxy-api` deployed up and running, you can use k8s `port-forward` to forward service locally,
+
+```bash
+kubectl port-forward -n bedrock-proxy-api svc/bedrock-proxy-api 8000:80
+```
+
+then you can use a simple curl command to call the service.
+
+```bash
+export BASE_URL=http://localhost:8000
+curl "$BASE_URL/openai/deployments/gpt-4o/chat/completions?api-version=2024-06-01" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer bedrock" \
+  -d '{
+    "messages": [
+      {
+        "role": "user",
+        "content": "Hello!"
+      }
+    ]
+  }'
+```
+
+you should see the output similar as the follwoing
+
+```text
+{"id":"chatcmpl-51c271ff","created":1723135203,"model":"anthropic.claude-3-sonnet-20240229-v1:0","system_fingerprint":"fp","choices":[{"index":0,"finish_reason":"stop","logprobs":null,"message":{"role":"assistant","content":"Hello! How can I assist you today?"}}],"object":"chat.completion","usage":{"prompt_tokens":9,"completion_tokens":12,"total_tokens":21}}
+```
+
+---
 
 ## Overview
 
@@ -22,6 +88,8 @@ If you find this GitHub repository useful, please consider giving it a free star
 
 **Features:**
 
+- [x] AzureOpenAI client
+- [x] Deployment on Amazon EKS
 - [x] Support streaming response via server-sent events (SSE)
 - [x] Support Model APIs
 - [x] Support Chat Completion APIs

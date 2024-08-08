@@ -198,9 +198,15 @@ class BedrockModel(BaseChatModel):
             error = f"Unsupported model {chat_request.model}, please use models API to get a list of supported models"
 
         # check if tool call is supported
-        elif chat_request.tools and not self._is_tool_call_supported(chat_request.model, stream=chat_request.stream):
-            tool_call_info = "Tool call with streaming" if chat_request.stream else "Tool call"
-            error = f"{tool_call_info} is currently not supported by {chat_request.model}"
+        elif chat_request.tools and not self._is_tool_call_supported(
+            chat_request.model, stream=chat_request.stream
+        ):
+            tool_call_info = (
+                "Tool call with streaming" if chat_request.stream else "Tool call"
+            )
+            error = (
+                f"{tool_call_info} is currently not supported by {chat_request.model}"
+            )
 
         if error:
             raise HTTPException(
@@ -215,8 +221,6 @@ class BedrockModel(BaseChatModel):
 
         # convert OpenAI chat request to Bedrock SDK request
         args = self._parse_request(chat_request)
-        if DEBUG:
-            logger.info("Bedrock request: " + json.dumps(args))
 
         try:
             if stream:
@@ -271,8 +275,8 @@ class BedrockModel(BaseChatModel):
             if stream_response.choices:
                 yield self.stream_response_to_bytes(stream_response)
             elif (
-                    chat_request.stream_options
-                    and chat_request.stream_options.include_usage
+                chat_request.stream_options
+                and chat_request.stream_options.include_usage
             ):
                 # An empty choices for Usage as per OpenAI doc below:
                 # if you set stream_options: {"include_usage": true}.
@@ -317,6 +321,7 @@ class BedrockModel(BaseChatModel):
         See example:
         https://docs.aws.amazon.com/bedrock/latest/userguide/conversation-inference.html#message-inference-examples
         """
+        logging.debug(f"##### Chat Request in _parse_message: {chat_request}")
         messages = []
         for message in chat_request.messages:
             if isinstance(message, UserMessage):
@@ -345,7 +350,7 @@ class BedrockModel(BaseChatModel):
                                     "toolUse": {
                                         "toolUseId": message.tool_calls[0].id,
                                         "name": message.tool_calls[0].function.name,
-                                        "input": tool_input
+                                        "input": tool_input,
                                     }
                                 }
                             ],
@@ -406,7 +411,9 @@ class BedrockModel(BaseChatModel):
                 ]
             }
 
-            if chat_request.tool_choice and not chat_request.model.startswith("meta.llama3-1-"):
+            if chat_request.tool_choice and not chat_request.model.startswith(
+                "meta.llama3-1-"
+            ):
                 if isinstance(chat_request.tool_choice, str):
                     # auto (default) is mapped to {"auto" : {}}
                     # required is mapped to {"any" : {}}
@@ -418,17 +425,20 @@ class BedrockModel(BaseChatModel):
                     # Specific tool to use
                     assert "function" in chat_request.tool_choice
                     args["toolConfig"]["toolChoice"] = {
-                        "tool": {"name": chat_request.tool_choice["function"].get("name", "")}}
+                        "tool": {
+                            "name": chat_request.tool_choice["function"].get("name", "")
+                        }
+                    }
         return args
 
     def _create_response(
-            self,
-            model: str,
-            message_id: str,
-            content: list[dict] = None,
-            finish_reason: str | None = None,
-            input_tokens: int = 0,
-            output_tokens: int = 0,
+        self,
+        model: str,
+        message_id: str,
+        content: list[dict] = None,
+        finish_reason: str | None = None,
+        input_tokens: int = 0,
+        output_tokens: int = 0,
     ) -> ChatResponse:
 
         message = ChatResponseMessage(
@@ -478,7 +488,7 @@ class BedrockModel(BaseChatModel):
         return response
 
     def _create_response_stream(
-            self, model_id: str, message_id: str, chunk: dict
+        self, model_id: str, message_id: str, chunk: dict
     ) -> ChatStreamResponse | None:
         """Parsing the Bedrock stream response chunk.
 
@@ -530,7 +540,7 @@ class BedrockModel(BaseChatModel):
                             index=index,
                             function=ResponseFunction(
                                 arguments=delta["toolUse"]["input"],
-                            )
+                            ),
                         )
                     ]
                 )
@@ -601,9 +611,9 @@ class BedrockModel(BaseChatModel):
             )
 
     def _parse_content_parts(
-            self,
-            message: UserMessage,
-            model_id: str,
+        self,
+        message: UserMessage,
+        model_id: str,
     ) -> list[dict]:
         if isinstance(message.content, str):
             return [
@@ -626,6 +636,9 @@ class BedrockModel(BaseChatModel):
                         detail=f"Multimodal message is currently not supported by {model_id}",
                     )
                 image_data, content_type = self._parse_image(part.image_url.url)
+                logging.debug(
+                    f" content_type: {content_type} \n image_data: {image_data}"
+                )
                 content_parts.append(
                     {
                         "image": {
@@ -685,9 +698,11 @@ class BedrockModel(BaseChatModel):
                 "max_tokens": "length",
                 "stop_sequence": "stop",
                 "complete": "stop",
-                "content_filtered": "content_filter"
+                "content_filtered": "content_filter",
             }
-            return finish_reason_mapping.get(finish_reason.lower(), finish_reason.lower())
+            return finish_reason_mapping.get(
+                finish_reason.lower(), finish_reason.lower()
+            )
         return None
 
 
@@ -715,12 +730,12 @@ class BedrockEmbeddingsModel(BaseEmbeddingsModel, ABC):
             raise HTTPException(status_code=500, detail=str(e))
 
     def _create_response(
-            self,
-            embeddings: list[float],
-            model: str,
-            input_tokens: int = 0,
-            output_tokens: int = 0,
-            encoding_format: Literal["float", "base64"] = "float",
+        self,
+        embeddings: list[float],
+        model: str,
+        input_tokens: int = 0,
+        output_tokens: int = 0,
+        encoding_format: Literal["float", "base64"] = "float",
     ) -> EmbeddingsResponse:
         data = []
         for i, embedding in enumerate(embeddings):
@@ -796,8 +811,8 @@ class TitanEmbeddingsModel(BedrockEmbeddingsModel):
         if isinstance(embeddings_request.input, str):
             input_text = embeddings_request.input
         elif (
-                isinstance(embeddings_request.input, list)
-                and len(embeddings_request.input) == 1
+            isinstance(embeddings_request.input, list)
+            and len(embeddings_request.input) == 1
         ):
             input_text = embeddings_request.input[0]
         else:
