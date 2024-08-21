@@ -10,13 +10,13 @@ This is a fork project from [Bedrock Access Gateway](https://github.com/aws-samp
 - [x] AzureOpenAI client
 - [x] Deployment on Amazon EKS
 
-
 ## Setup
 ### Happy path for testing
+Assuming you already have an EKS cluster running, otherwise you can run `make cluster` to create a brand new.
+
 First set up the permission for the Bedrock Proxy API. To simplify the process, we are leveraging the [EKS Pod Identity](https://docs.aws.amazon.com/eks/latest/userguide/pod-identities.html) feature, and using the EKS CLI tool - [eksctl](https://eksctl.io/).
 
 ```bash
-kubectl create ns bedrock-proxy-api
 eksctl create addon --cluster <cluster-name> --name eks-pod-identity-agent
 eksctl create podidentityassociation \
     --cluster <cluster-name> \

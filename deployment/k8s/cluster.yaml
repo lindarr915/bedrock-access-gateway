@@ -23,7 +23,7 @@ iam:
     serviceAccountName: bedrock-proxy-api
     permissionPolicyARNs:
     - arn:aws:iam::aws:policy/AmazonBedrockFullAccess
-
+    - arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess
 
 
 vpc:

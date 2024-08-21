@@ -7,6 +7,8 @@ cluster:
 	@echo "\n========== Creating cluster... =========="
 	eksctl deployment/k8s/create cluster.yaml
 
+iam: pod-identity-agent gw-pod-identity
+
 pod-identity-agent:
 	@echo "Prequisits...."
 	eksctl create addon --cluster br-gw-demo --name eks-pod-identity-agent
