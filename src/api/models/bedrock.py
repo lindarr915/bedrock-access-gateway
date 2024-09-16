@@ -12,10 +12,6 @@ import requests
 import tiktoken
 from fastapi import HTTPException
 
-# logging.getLogger("boto3").setLevel(logging.DEBUG)
-# logging.getLogger("botocore").setLevel(logging.DEBUG)
-
-
 from api.models.base import BaseChatModel, BaseEmbeddingsModel
 from api.schema import (
     # Chat
