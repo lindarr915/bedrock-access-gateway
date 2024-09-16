@@ -12,6 +12,10 @@ import requests
 import tiktoken
 from fastapi import HTTPException
 
+# logging.getLogger("boto3").setLevel(logging.DEBUG)
+# logging.getLogger("botocore").setLevel(logging.DEBUG)
+
+
 from api.models.base import BaseChatModel, BaseEmbeddingsModel
 from api.schema import (
     # Chat
@@ -336,8 +340,33 @@ class BedrockModel(BaseChatModel):
             elif isinstance(message, AssistantMessage):
                 if message.content:
                     # Text message
-                    messages.append(
-                        {"role": message.role, "content": [{"text": message.content}]}
+                    if message.tool_calls:
+                        tool_input = json.loads(message.tool_calls[0].function.arguments)
+                        messages.append(
+                            {
+                                "role": message.role,
+                                "content": [
+                                    {
+                                        # Tool use message
+                                        "toolUse": {
+                                            "toolUseId": message.tool_calls[0].id,
+                                            "name": message.tool_calls[0].function.name,
+                                            "input": tool_input,
+                                        },
+                                    }
+                                ],
+                            }
+                        )
+                    else:
+                        messages.append(
+                            {
+                                "role": message.role,
+                                "content": [
+                                    {
+                                        "text": message.content,
+                                    }
+                                ],
+                            }                    
                     )
                 else:
                     # Tool use message
@@ -351,7 +380,7 @@ class BedrockModel(BaseChatModel):
                                         "toolUseId": message.tool_calls[0].id,
                                         "name": message.tool_calls[0].function.name,
                                         "input": tool_input,
-                                    }
+                                    },
                                 }
                             ],
                         }
