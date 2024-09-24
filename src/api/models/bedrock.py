@@ -40,6 +40,11 @@ from api.setting import DEBUG, AWS_REGION
 
 logger = logging.getLogger(__name__)
 
+
+if DEBUG:
+    logging.getLogger("boto3").setLevel(logging.DEBUG)
+    logging.getLogger("botocore").setLevel(logging.DEBUG)
+
 bedrock_runtime = boto3.client(
     service_name="bedrock-runtime",
     region_name=AWS_REGION,
